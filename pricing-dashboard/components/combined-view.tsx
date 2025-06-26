@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Search, ChevronLeft, ChevronRight, Sparkles, Filter } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Sparkles, Filter, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,44 +12,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 
-interface SKU {
-  id: string
-  sku_code: string
-  description: string
-  category: string
-  storage: string
-  ai_price: number
-  inventory_lbs: number
-  recent_gp_percent: number
-  seven_day_delta: number
-}
+// Import Firebase hooks
+import { useSkus, useSkuSearch, SkuData } from "@/hooks/use-firebase"
 
 interface CombinedViewProps {
-  skus: SKU[]
+  initialSkus?: SkuData[]
 }
 
-export function CombinedView({ skus }: CombinedViewProps) {
+export function CombinedView({ initialSkus = [] }: CombinedViewProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  // Set default filters as requested
-  const [categoryFilter, setCategoryFilter] = useState<string>("Beef")
-  const [storageFilter, setStorageFilter] = useState<string>("Frozen")
-  const [activeInventoryOnly, setActiveInventoryOnly] = useState(true)
+  const { skus, loading: loadingSkus, error: skusError } = useSkus()
+  const { searchResults, loading: searchLoading } = useSkuSearch(searchQuery)
+  // Set default filters with less restrictive values
+  const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [storageFilter, setStorageFilter] = useState<string>("all")
+  const [activeInventoryOnly, setActiveInventoryOnly] = useState(false)
   const itemsPerPage = 25
 
   // Filter SKUs based on all filters
   const filteredSKUs = useMemo(() => {
-    let filtered = skus
+    // Use search results if there's a search query, otherwise use all skus
+    let filtered = searchQuery ? searchResults : skus
 
-    // Search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(
-        (sku) =>
-          sku.sku_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          sku.description.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    }
+    // No need to filter by search query again, as searchResults already handles that
 
     // Category filter
     if (categoryFilter !== "all") {
@@ -58,16 +45,20 @@ export function CombinedView({ skus }: CombinedViewProps) {
 
     // Storage filter
     if (storageFilter !== "all") {
-      filtered = filtered.filter((sku) => sku.storage === storageFilter)
+      filtered = filtered.filter((sku) => {
+        // Convert warehouse code to storage type
+        const storage = sku.warehouseCode === 1 ? "Fresh" : "Frozen"
+        return storage === storageFilter
+      })
     }
 
     // Active inventory filter
     if (activeInventoryOnly) {
-      filtered = filtered.filter((sku) => sku.inventory_lbs > 0)
+      filtered = filtered.filter((sku) => sku.inventory > 0)
     }
 
     return filtered
-  }, [skus, searchQuery, categoryFilter, storageFilter, activeInventoryOnly])
+  }, [skus, searchResults, searchQuery, categoryFilter, storageFilter, activeInventoryOnly])
 
   // Paginate filtered results
   const paginatedSKUs = useMemo(() => {
@@ -87,7 +78,7 @@ export function CombinedView({ skus }: CombinedViewProps) {
     handleFilterChange()
   }
 
-  const handleSKUClick = (sku: SKU) => {
+  const handleSKUClick = (sku: SkuData) => {
     router.push(`/sku/${sku.id}`)
   }
 
@@ -113,7 +104,11 @@ export function CombinedView({ skus }: CombinedViewProps) {
       <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
         <div className="flex flex-col gap-4">
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6" />
+            {loadingSkus ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <Sparkles className="h-6 w-6" />
+            )}
             All SKUs ({filteredSKUs.length})
           </CardTitle>
 
@@ -136,35 +131,46 @@ export function CombinedView({ skus }: CombinedViewProps) {
               <span className="text-sm font-medium">Filters:</span>
             </div>
 
-            {/* Category Filter - Preset to Beef */}
-            <Select value={categoryFilter} onValueChange={() => {}}>
+            {/* Category Filter */}
+            <Select value={categoryFilter} onValueChange={(value) => {
+              setCategoryFilter(value);
+              handleFilterChange();
+            }}>
               <SelectTrigger className="w-40 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="Beef">Beef</SelectItem>
                 <SelectItem value="Poultry">Poultry</SelectItem>
                 <SelectItem value="Seafood">Seafood</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* Storage Filter - Preset to Frozen */}
-            <Select value={storageFilter} onValueChange={() => {}}>
+            {/* Storage Filter */}
+            <Select value={storageFilter} onValueChange={(value) => {
+              setStorageFilter(value);
+              handleFilterChange();
+            }}>
               <SelectTrigger className="w-32 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All</SelectItem>
                 <SelectItem value="Fresh">Fresh</SelectItem>
                 <SelectItem value="Frozen">Frozen</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* Active Inventory Filter - Preset to Checked */}
+            {/* Active Inventory Filter */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="active-inventory"
                 checked={activeInventoryOnly}
-                onCheckedChange={() => {}}
+                onCheckedChange={(checked) => {
+                  setActiveInventoryOnly(!!checked);
+                  handleFilterChange();
+                }}
                 className="border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-indigo-600"
               />
               <label htmlFor="active-inventory" className="text-sm font-medium cursor-pointer">
@@ -192,7 +198,16 @@ export function CombinedView({ skus }: CombinedViewProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedSKUs.length > 0 ? (
+              {loadingSkus || searchLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-4 text-slate-500">
+                      <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                      <p className="text-lg font-medium">Loading SKUs...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : paginatedSKUs.length > 0 ? (
                 paginatedSKUs.map((sku, index) => (
                   <TableRow
                     key={sku.id}
@@ -203,7 +218,7 @@ export function CombinedView({ skus }: CombinedViewProps) {
                     onClick={() => handleSKUClick(sku)}
                   >
                     <TableCell className="font-bold text-indigo-600">
-                      {highlightMatch(sku.sku_code, searchQuery)}
+                      {highlightMatch(sku.productCode, searchQuery)}
                     </TableCell>
                     <TableCell className="max-w-0">
                       <div className="truncate font-medium text-slate-700" title={sku.description}>
@@ -216,19 +231,19 @@ export function CombinedView({ skus }: CombinedViewProps) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={sku.storage === "Fresh" ? "default" : "secondary"} className="text-xs">
-                        {sku.storage}
+                      <Badge variant={sku.warehouseCode === 1 ? "default" : "secondary"} className="text-xs">
+                        {sku.warehouseCode === 1 ? "Fresh" : "Frozen"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="font-bold text-xl text-emerald-600">${sku.ai_price.toFixed(2)}</div>
+                      <div className="font-bold text-xl text-emerald-600">${sku.aiPrice.toFixed(2)}</div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-semibold text-slate-700">{sku.recent_gp_percent.toFixed(1)}%</span>
+                      <span className="font-semibold text-slate-700">{sku.gpPercent.toFixed(1)}%</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-sm font-medium text-slate-600">
-                        {sku.inventory_lbs.toLocaleString()} lbs
+                        {sku.inventory.toLocaleString()} lbs
                       </span>
                     </TableCell>
                     <TableCell>
@@ -242,6 +257,15 @@ export function CombinedView({ skus }: CombinedViewProps) {
                     </TableCell>
                   </TableRow>
                 ))
+              ) : skusError ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-4 text-red-500">
+                      <p className="text-lg font-medium">Error loading SKUs</p>
+                      <p className="text-sm">{skusError}</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12">

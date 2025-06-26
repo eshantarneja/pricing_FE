@@ -2,7 +2,6 @@
 
 import { CombinedView } from "@/components/combined-view"
 import { Toaster } from "@/components/ui/toaster"
-import { mockSKUs } from "@/data/mock-skus"
 
 export default function Dashboard() {
   return (
@@ -30,7 +29,7 @@ export default function Dashboard() {
 
         <div className="space-y-8">
           {/* Combined Search and Catalog View */}
-          <CombinedView skus={mockSKUs} />
+          <CombinedView />
         </div>
       </div>
 

@@ -7,26 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import { SkuData } from "@/hooks/use-firebase"
 
 interface SKUCardProps {
-  sku: {
-    sku_code: string
-    description: string
-    ai_price: number
-    last_cost: number
-    benchmark_price: number
-    inventory_lbs: number
-    weeks_on_hand: number
-    recent_gp_percent: number
-    lifetime_gp_percent: number
-    median_gp_percent: number
-    usda_today: number
-    seven_day_delta: number
-    thirty_vs_ninety_delta: number
-    one_year_delta: number
-    rationale: string[]
-    updated_at: string
-  }
+  sku: SkuData
 }
 
 export function SKUCard({ sku }: SKUCardProps) {
@@ -34,8 +18,10 @@ export function SKUCard({ sku }: SKUCardProps) {
 
   const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`
   const formatPercent = (percent: number) => `${percent.toFixed(1)}%`
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
+  // Current timestamp (since updated_at is not in our data yet)
+  const formatDate = () => {
+    const now = new Date()
+    return now.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -45,6 +31,7 @@ export function SKUCard({ sku }: SKUCardProps) {
 
   // Calculate margin percentage
   const calculateMargin = (price: number, cost: number) => {
+    if (!price || !cost) return "0.0"
     return (((price - cost) / price) * 100).toFixed(1)
   }
 
@@ -59,18 +46,27 @@ export function SKUCard({ sku }: SKUCardProps) {
     if (delta < 0) return "text-red-600"
     return "text-slate-600"
   }
+  
+  // Mock data for fields not yet in Firestore per PRD
+  const mockMarketData = {
+    usda_today: 0,
+    seven_day_delta: 0,
+    thirty_vs_ninety_delta: 0,
+    one_year_delta: 0,
+    rationale: [],
+  }
 
   return (
     <Card className="w-full max-w-5xl mx-auto shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
       <CardHeader className="pb-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <CardTitle className="text-xl font-bold text-slate-900">{sku.sku_code}</CardTitle>
+            <CardTitle className="text-xl font-bold text-slate-900">{sku.productCode}</CardTitle>
             <p className="text-slate-600 mt-1">{sku.description}</p>
           </div>
           <Badge variant="secondary" className="w-fit">
             <Clock className="h-3 w-3 mr-1" />
-            Updated {formatDate(sku.updated_at)}
+            Updated {formatDate()}
           </Badge>
         </div>
       </CardHeader>
@@ -79,11 +75,11 @@ export function SKUCard({ sku }: SKUCardProps) {
         {/* Section A: AI Recommended Price */}
         <div className="text-center py-8 bg-gradient-to-r from-emerald-50 via-blue-50 to-indigo-50 rounded-xl border-2 border-indigo-100 shadow-inner">
           <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-3">
-            {formatCurrency(sku.ai_price)}
+            {formatCurrency(sku.aiPrice)}
           </div>
           <div className="text-xl font-semibold text-slate-700 mb-2">AI-Recommended Price</div>
           <div className="text-sm text-slate-500 bg-white/60 rounded-full px-4 py-1 inline-block">
-            Margin: {calculateMargin(sku.ai_price, sku.last_cost)}%
+            Margin: {calculateMargin(sku.aiPrice, sku.lastCost)}%
           </div>
         </div>
 
@@ -105,12 +101,16 @@ export function SKUCard({ sku }: SKUCardProps) {
             <Card className="bg-slate-50">
               <CardContent className="p-4">
                 <div className="max-h-40 overflow-y-auto space-y-2">
-                  {sku.rationale.map((reason, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                      <p className="text-sm text-slate-700">{reason}</p>
-                    </div>
-                  ))}
+                  {mockMarketData.rationale.length > 0 ? (
+                    mockMarketData.rationale.map((reason: string, index: number) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                        <p className="text-sm text-slate-700">{reason}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">Reasoning information will be available soon.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -132,11 +132,11 @@ export function SKUCard({ sku }: SKUCardProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Last Cost:</span>
-                    <span className="font-medium">{formatCurrency(sku.last_cost)}</span>
+                    <span className="font-medium">{formatCurrency(sku.lastCost)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Benchmark Price:</span>
-                    <span className="font-medium">{formatCurrency(sku.benchmark_price)}</span>
+                    <span className="font-medium">{formatCurrency(sku.benchmarkPrice)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -149,11 +149,11 @@ export function SKUCard({ sku }: SKUCardProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Inventory:</span>
-                    <span className="font-medium">{sku.inventory_lbs.toLocaleString()} lbs</span>
+                    <span className="font-medium">{sku.inventory.toLocaleString()} lbs</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Weeks on Hand:</span>
-                    <span className="font-medium">{sku.weeks_on_hand.toFixed(1)} weeks</span>
+                    <span className="font-medium">{sku.weeksOnHand || '0'} weeks</span>
                   </div>
                 </div>
               </CardContent>
@@ -166,15 +166,15 @@ export function SKUCard({ sku }: SKUCardProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Recent GP:</span>
-                    <span className="font-medium">{formatPercent(sku.recent_gp_percent)}</span>
+                    <span className="font-medium">{formatPercent(sku.recentGP)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Lifetime GP:</span>
-                    <span className="font-medium">{formatPercent(sku.lifetime_gp_percent)}</span>
+                    <span className="font-medium">{formatPercent(sku.lifetimeGP)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Median GP:</span>
-                    <span className="font-medium">{formatPercent(sku.median_gp_percent)}</span>
+                    <span className="font-medium">{formatPercent(sku.medianGP)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -187,34 +187,19 @@ export function SKUCard({ sku }: SKUCardProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">USDA Today:</span>
-                    <span className="font-medium">{formatCurrency(sku.usda_today)}</span>
+                    <span className="font-medium text-slate-400">— Not available —</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">7-Day Δ:</span>
-                    <div className="flex items-center gap-1">
-                      {getTrendIcon(sku.seven_day_delta)}
-                      <span className={cn("font-medium", getTrendColor(sku.seven_day_delta))}>
-                        {formatPercent(Math.abs(sku.seven_day_delta))}
-                      </span>
-                    </div>
+                    <span className="font-medium text-slate-400">— Not available —</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">30v90 Δ:</span>
-                    <div className="flex items-center gap-1">
-                      {getTrendIcon(sku.thirty_vs_ninety_delta)}
-                      <span className={cn("font-medium", getTrendColor(sku.thirty_vs_ninety_delta))}>
-                        {formatPercent(Math.abs(sku.thirty_vs_ninety_delta))}
-                      </span>
-                    </div>
+                    <span className="font-medium text-slate-400">— Not available —</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">1 Year Δ:</span>
-                    <div className="flex items-center gap-1">
-                      {getTrendIcon(sku.one_year_delta)}
-                      <span className={cn("font-medium", getTrendColor(sku.one_year_delta))}>
-                        {formatPercent(Math.abs(sku.one_year_delta))}
-                      </span>
-                    </div>
+                    <span className="font-medium text-slate-400">— Not available —</span>
                   </div>
                 </div>
               </CardContent>
