@@ -47,13 +47,14 @@ export function SKUCard({ sku }: SKUCardProps) {
     return "text-slate-600"
   }
   
-  // Mock data for fields not yet in Firestore per PRD
-  const mockMarketData = {
+  // Market data - some fields still use mock data per PRD
+  const marketData = {
     usda_today: 0,
     seven_day_delta: 0,
     thirty_vs_ninety_delta: 0,
     one_year_delta: 0,
-    rationale: [],
+    // Use the actual rationale from Firebase instead of mock data
+    rationale: sku.rationale || [],
   }
 
   return (
@@ -101,13 +102,18 @@ export function SKUCard({ sku }: SKUCardProps) {
             <Card className="bg-slate-50">
               <CardContent className="p-4">
                 <div className="max-h-40 overflow-y-auto space-y-2">
-                  {mockMarketData.rationale.length > 0 ? (
-                    mockMarketData.rationale.map((reason: string, index: number) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <p className="text-sm text-slate-700">{reason}</p>
-                      </div>
-                    ))
+                  {marketData.rationale.length > 0 ? (
+                    marketData.rationale.map((reason: string, index: number) => {
+                      // Replace unicode arrow character with actual arrow symbol
+                      const formattedReason = reason.replace(/\u2192|→/g, '→');
+                      
+                      return (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                          <p className="text-sm text-slate-700">{formattedReason}</p>
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-sm text-slate-500">Reasoning information will be available soon.</p>
                   )}

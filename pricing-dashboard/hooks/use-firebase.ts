@@ -30,11 +30,57 @@ export interface SkuData {
   medianGP: number;
   weeksOnHand: string;
   warehouseCode: number;
+  rationale: string[]; // Array of strings explaining the pricing rationale
 }
 
 // Map Firestore data to our SKU interface
 const mapSkuData = (doc: DocumentData): SkuData => {
   const data = doc.data();
+  
+  // Process rationale field - handle various format possibilities
+  let rationaleArray: string[] = [];
+  if (data.Rationale) {
+    if (Array.isArray(data.Rationale)) {
+      // Already an array, use directly
+      rationaleArray = data.Rationale;
+    } else if (typeof data.Rationale === 'string') {
+      try {
+        // First check if it's a JSON array string
+        if (data.Rationale.startsWith('[') && data.Rationale.endsWith(']')) {
+          try {
+            const parsed = JSON.parse(data.Rationale);
+            if (Array.isArray(parsed)) {
+              rationaleArray = parsed;
+              console.log('Parsed JSON array rationale:', rationaleArray);
+            }
+          } catch (e) {
+            // Not a valid JSON array, continue with other parsing methods
+            console.log('Not a valid JSON array, trying other parsing methods');
+          }
+        }
+        
+        // If array is still empty, try parsing the unicode arrow format
+        if (rationaleArray.length === 0) {
+          // Handle the case where it's one string with unicode arrow characters (→)
+          const arrowSplit = data.Rationale
+            .split('\u2192')
+            .map((item: string) => item.trim())
+            .filter((item: string) => item.length > 0);
+            
+          if (arrowSplit.length > 1) {
+            rationaleArray = arrowSplit;
+            console.log('Parsed arrow-delimited rationale:', rationaleArray);
+          } else {
+            // If no arrows found, check if it's a single-item (no splits)
+            rationaleArray = [data.Rationale];
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing rationale field:', error);
+        rationaleArray = [data.Rationale]; // Fallback to using the raw string
+      }
+    }
+  }
   
   return {
     id: doc.id,
@@ -51,7 +97,8 @@ const mapSkuData = (doc: DocumentData): SkuData => {
     lifetimeGP: Number(data.Historical_GPPercent) || 0,
     medianGP: Number(data.GPMedian) || 0,
     weeksOnHand: data.WeeksOnHand || '0',
-    warehouseCode: Number(data.WarehouseCode) || 0
+    warehouseCode: Number(data.WarehouseCode) || 0,
+    rationale: rationaleArray
   };
 };
 
