@@ -9,6 +9,14 @@
     "start": "cd pricing-dashboard && npm run start"
   },
   "dependencies": {
-    "next": "15.2.4"
+    "next": "15.2.4",
+    "date-fns": "^3.0.0",
+    "react-day-picker": "8.10.1"
+  },
+  "resolutions": {
+    "date-fns": "^3.0.0"
+  },
+  "overrides": {
+    "date-fns": "^3.0.0"
   }
 }
