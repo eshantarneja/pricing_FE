@@ -1,0 +1,14 @@
+{
+  "name": "pricing_fe",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["pricing-dashboard"],
+  "scripts": {
+    "build": "cd pricing-dashboard && npm run build",
+    "dev": "cd pricing-dashboard && npm run dev",
+    "start": "cd pricing-dashboard && npm run start"
+  },
+  "dependencies": {
+    "next": "15.2.4"
+  }
+}
