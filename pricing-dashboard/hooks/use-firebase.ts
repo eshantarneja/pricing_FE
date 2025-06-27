@@ -31,6 +31,12 @@ export interface SkuData {
   weeksOnHand: string;
   warehouseCode: number;
   rationale: string[]; // Array of strings explaining the pricing rationale
+  
+  // USDA Market Trends data
+  USDA_TodayPrice?: number;
+  USDA_7d_pct_change?: number;
+  USDA_30v90_pct_change?: number;
+  USDA_1yr_pct_change?: number;
 }
 
 // Map Firestore data to our SKU interface
@@ -98,7 +104,18 @@ const mapSkuData = (doc: DocumentData): SkuData => {
     medianGP: Number(data.GPMedian) || 0,
     weeksOnHand: data.WeeksOnHand || '0',
     warehouseCode: Number(data.WarehouseCode) || 0,
-    rationale: rationaleArray
+    rationale: rationaleArray,
+    
+    // USDA Market Trends data (may be undefined if not available)
+    // Treat null, undefined, or zero values as undefined so they display as 'Not available'
+    USDA_TodayPrice: data.USDA_TodayPrice !== undefined && data.USDA_TodayPrice !== null && Number(data.USDA_TodayPrice) !== 0 ? 
+      Number(data.USDA_TodayPrice) : undefined,
+    USDA_7d_pct_change: data.USDA_7d_pct_change !== undefined && data.USDA_7d_pct_change !== null && Number(data.USDA_7d_pct_change) !== 0 ? 
+      Number(data.USDA_7d_pct_change) : undefined,
+    USDA_30v90_pct_change: data.USDA_30v90_pct_change !== undefined && data.USDA_30v90_pct_change !== null && Number(data.USDA_30v90_pct_change) !== 0 ? 
+      Number(data.USDA_30v90_pct_change) : undefined,
+    USDA_1yr_pct_change: data.USDA_1yr_pct_change !== undefined && data.USDA_1yr_pct_change !== null && Number(data.USDA_1yr_pct_change) !== 0 ? 
+      Number(data.USDA_1yr_pct_change) : undefined
   };
 };
 

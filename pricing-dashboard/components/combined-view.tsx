@@ -192,7 +192,7 @@ export function CombinedView({ initialSkus = [] }: CombinedViewProps) {
                 <TableHead className="font-semibold text-slate-700 w-24">Category</TableHead>
                 <TableHead className="font-semibold text-slate-700 w-20">Storage</TableHead>
                 <TableHead className="font-semibold text-slate-700 text-right w-28">AI Price</TableHead>
-                <TableHead className="font-semibold text-slate-700 text-right w-24">GP%</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-right w-24">AI GP%</TableHead>
                 <TableHead className="font-semibold text-slate-700 text-right w-32">Inventory</TableHead>
                 <TableHead className="w-20"></TableHead>
               </TableRow>

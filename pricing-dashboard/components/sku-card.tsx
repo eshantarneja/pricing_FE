@@ -78,7 +78,7 @@ export function SKUCard({ sku }: SKUCardProps) {
           <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-3">
             {formatCurrency(sku.aiPrice)}
           </div>
-          <div className="text-xl font-semibold text-slate-700 mb-2">AI-Recommended Price</div>
+          <div className="text-xl font-semibold text-slate-700 mb-2">AI Recommended Sales Price</div>
           <div className="text-sm text-slate-500 bg-white/60 rounded-full px-4 py-1 inline-block">
             Margin: {calculateMargin(sku.aiPrice, sku.lastCost)}%
           </div>
@@ -141,7 +141,7 @@ export function SKUCard({ sku }: SKUCardProps) {
                     <span className="font-medium">{formatCurrency(sku.lastCost)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Benchmark Price:</span>
+                    <span className="text-slate-600">Current Sales Price:</span>
                     <span className="font-medium">{formatCurrency(sku.benchmarkPrice)}</span>
                   </div>
                 </div>
@@ -154,7 +154,7 @@ export function SKUCard({ sku }: SKUCardProps) {
                 <h4 className="font-medium text-slate-700 mb-3">Inventory</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Inventory:</span>
+                    <span className="text-slate-600">Current Inventory:</span>
                     <span className="font-medium">{sku.inventory.toLocaleString()} lbs</span>
                   </div>
                   <div className="flex justify-between">
@@ -193,19 +193,44 @@ export function SKUCard({ sku }: SKUCardProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">USDA Today:</span>
-                    <span className="font-medium text-slate-400">— Not available —</span>
+                    {sku.USDA_TodayPrice !== undefined ? (
+                      <span className="font-medium">{formatCurrency(sku.USDA_TodayPrice)}</span>
+                    ) : (
+                      <span className="font-medium text-slate-400">— Not available —</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">7-Day Δ:</span>
-                    <span className="font-medium text-slate-400">— Not available —</span>
+                    {sku.USDA_7d_pct_change !== undefined ? (
+                      <span className={`font-medium flex items-center ${getTrendColor(sku.USDA_7d_pct_change)}`}>
+                        {getTrendIcon(sku.USDA_7d_pct_change)}
+                        <span className="ml-1">{formatPercent(sku.USDA_7d_pct_change)}</span>
+                      </span>
+                    ) : (
+                      <span className="font-medium text-slate-400">— Not available —</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">30v90 Δ:</span>
-                    <span className="font-medium text-slate-400">— Not available —</span>
+                    {sku.USDA_30v90_pct_change !== undefined ? (
+                      <span className={`font-medium flex items-center ${getTrendColor(sku.USDA_30v90_pct_change)}`}>
+                        {getTrendIcon(sku.USDA_30v90_pct_change)}
+                        <span className="ml-1">{formatPercent(sku.USDA_30v90_pct_change)}</span>
+                      </span>
+                    ) : (
+                      <span className="font-medium text-slate-400">— Not available —</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">1 Year Δ:</span>
-                    <span className="font-medium text-slate-400">— Not available —</span>
+                    {sku.USDA_1yr_pct_change !== undefined ? (
+                      <span className={`font-medium flex items-center ${getTrendColor(sku.USDA_1yr_pct_change)}`}>
+                        {getTrendIcon(sku.USDA_1yr_pct_change)}
+                        <span className="ml-1">{formatPercent(sku.USDA_1yr_pct_change)}</span>
+                      </span>
+                    ) : (
+                      <span className="font-medium text-slate-400">— Not available —</span>
+                    )}
                   </div>
                 </div>
               </CardContent>
