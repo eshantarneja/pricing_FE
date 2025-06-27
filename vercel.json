@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd pricing-dashboard && npm run build",
-  "outputDirectory": "pricing-dashboard/.next"
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "pricing-dashboard/.next",
+  "installCommand": "npm install --legacy-peer-deps"
 }
