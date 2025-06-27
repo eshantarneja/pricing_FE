@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./pricing-dashboard/*"]
+    }
+  },
+  "include": ["pricing-dashboard/**/*.ts", "pricing-dashboard/**/*.tsx"],
+  "exclude": ["node_modules"]
+}
